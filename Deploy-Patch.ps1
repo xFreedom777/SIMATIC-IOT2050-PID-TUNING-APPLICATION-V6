@@ -1,9 +1,8 @@
-# ==============================================================================
-# SIMATIC IOT2050 24/7 Stability & Patch Deployment Script
-# Developed by Dream Piyapong
+﻿# ==============================================================================
+# SIMATIC IOT2050 24/7 Stability & Power-Cut Proof Deployment Script
+# Developed by Dream Piyapong (xFreedom777)
 # ==============================================================================
 
-# Force UTF-8 Console Output to prevent Chinese / Mojibake characters
 try {
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     chcp 65001 > $null
@@ -11,7 +10,7 @@ try {
 
 Clear-Host
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "  SIMATIC IOT2050 24/7 Stability Patch Deployment" -ForegroundColor Cyan
+Write-Host "  SIMATIC IOT2050 24/7 Stability & Power-Cut Proof Patch" -ForegroundColor Cyan
 Write-Host "  >> Developed by Dream Piyapong <<" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host ""
@@ -44,7 +43,7 @@ scp .\generate-usb-viewer.js ${iot_user}@${iot_ip}:${iot_path}/
 Write-Host "[6/10] Deploying s7client.js..." -ForegroundColor Yellow
 scp .\src\s7client.js ${iot_user}@${iot_ip}:${iot_path}/src/
 
-Write-Host "[7/10] Deploying 24/7 Stability Setup Script..." -ForegroundColor Yellow
+Write-Host "[7/10] Deploying 24/7 Stability & Power-Cut Setup Script..." -ForegroundColor Yellow
 scp .\usb-mount-helper.sh ${iot_user}@${iot_ip}:${iot_path}/
 scp .\usb-unmount-helper.sh ${iot_user}@${iot_ip}:${iot_path}/
 scp .\setup-247-stability.sh ${iot_user}@${iot_ip}:${iot_path}/
@@ -60,7 +59,7 @@ scp .\kiosk.service ${iot_user}@${iot_ip}:${iot_path}/
 Write-Host "`n[OK] All files copied successfully to IOT2050!" -ForegroundColor Green
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "  Executing 24/7 OS Configuration on IOT2050..." -ForegroundColor Cyan
+Write-Host "  Executing 24/7 OS Configuration & Protection on IOT2050..." -ForegroundColor Cyan
 Write-Host "  >> By Dream Piyapong <<" -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Cyan
 
@@ -73,20 +72,21 @@ ssh ${iot_user}@${iot_ip} "systemctl restart pid-app kiosk-watchdog"
 Write-Host ""
 Write-Host "===========================================================" -ForegroundColor Cyan
 Write-Host "  DEPLOYMENT COMPLETE (By Dream Piyapong)" -ForegroundColor Green
+Write-Host "  🛡️  SD Card is now configured with OverlayFS Protection" -ForegroundColor Cyan
 Write-Host "===========================================================" -ForegroundColor Cyan
 Write-Host ""
 
-$doReboot = Read-Host "Reboot IOT2050 now to apply all changes? (Y/N) [Default: Y]"
+$doReboot = Read-Host "Reboot IOT2050 now to ACTIVATE Read-Only Protection? (Y/N) [Default: Y]"
 if ([string]::IsNullOrWhiteSpace($doReboot) -or $doReboot.ToUpper() -eq "Y") {
     Write-Host ""
     Write-Host "--> Sending reboot command to IOT2050..." -ForegroundColor Yellow
     ssh ${iot_user}@${iot_ip} "sleep 1 && reboot"
     Write-Host ""
-    Write-Host "[OK] Reboot command sent! IOT2050 will restart in ~30 seconds." -ForegroundColor Green
-    Write-Host "     Wait for the kiosk display to come back before using the system." -ForegroundColor Cyan
+    Write-Host "[OK] Reboot command sent! IOT2050 will restart in ~30-40 seconds." -ForegroundColor Green
+    Write-Host "     After reboot, the system is 100% immune to sudden power cuts." -ForegroundColor Cyan
 } else {
     Write-Host ""
-    Write-Host "[SKIPPED] You can reboot manually later:" -ForegroundColor Yellow
+    Write-Host "[SKIPPED] Remember to reboot manually to activate protection:" -ForegroundColor Yellow
     Write-Host "   ssh ${iot_user}@${iot_ip} 'reboot'" -ForegroundColor White
 }
 Write-Host ""

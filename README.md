@@ -1,4 +1,4 @@
-# SIMATIC IOT2050 PID Tuning Application — V5
+﻿# SIMATIC IOT2050 PID Tuning Application — V6
 
 > **[ภาษาไทย 🇹🇭 อยู่ด้านล่าง / Thai version below ⬇️]**
 
@@ -7,12 +7,12 @@
 <div align="center">
 
 ```
-███████╗██╗ █████╗ ███╗   ███╗ █████╗ ████████╗██╗ ██████╗
-██╔════╝██║██╔══██╗████╗ ████║██╔══██╗╚══██╔══╝██║██╔════╝
-███████╗██║███████║██╔████╔██║███████║   ██║   ██║██║     
-╚════██║██║██╔══██║██║╚██╔╝██║██╔══██║   ██║   ██║██║     
-███████║██║██║  ██║██║ ╚═╝ ██║██║  ██║   ██║   ██║╚██████╗
-╚══════╝╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝
+███████╗██╗███╗   ███╗ █████╗ ████████╗██╗ ██████╗
+██╔════╝██║████╗ ████║██╔══██╗╚══██╔══╝██║██╔════╝
+███████╗██║██╔████╔██║███████║   ██║   ██║██║     
+╚════██║██║██║╚██╔╝██║██╔══██║   ██║   ██║██║     
+███████║██║██║ ╚═╝ ██║██║  ██║   ██║   ██║╚██████╗
+╚══════╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝ ╚═════╝
 ```
 
 **Siemens SIMATIC IOT2050 × S7-1200 PLC × PIDCompact V2**
@@ -22,8 +22,8 @@
 ![Node.js](https://img.shields.io/badge/Node.js-18%2B-green?logo=node.js)
 ![Siemens](https://img.shields.io/badge/Siemens-S7--1200-009999?logo=siemens)
 ![Platform](https://img.shields.io/badge/Platform-IOT2050%20Debian-blue)
-![Protocol](https://img.shields.io/badge/Protocol-S7%20over%20TCP%2FIP-orange)
-![Stability](https://img.shields.io/badge/Stability-24%2F7%20Industrial%20V5-brightgreen)
+![Protection](https://img.shields.io/badge/Power--Cut%20Immunity-OverlayFS%20Read--Only-gold)
+![Stability](https://img.shields.io/badge/Stability-24%2F7%20Industrial%20V6-brightgreen)
 ![Author](https://img.shields.io/badge/Author-xFreedom777-purple)
 
 </div>
@@ -32,73 +32,93 @@
 
 ## 📑 Table of Contents (สารบัญ)
 
-- [Overview (ภาพรวมระบบ)](#-overview)
-- [System Architecture (สถาปัตยกรรมโครงสร้างระบบ)](#-system-architecture)
-- [What's New in Version 5 (ฟีเจอร์เด่นในเวอร์ชัน 5)](#-whats-new-in-version-5)
-- [24/7 Industrial Stability System (ระบบความเสถียร 24/7)](#-247-industrial-stability-system)
-- [Offline USB Dashboard & Analytics (ระบบดูกราฟออฟไลน์ผ่าน USB)](#-offline-usb-dashboard--analytics)
-- [OT Layer — PLC Control System (ระบบควบคุม PLC)](#-ot-layer--plc-control-system)
-- [Hardware & Software Requirements (ข้อกำหนดฮาร์ดแวร์และซอฟต์แวร์)](#-hardware--software-requirements)
-- [Deployment Guide (คู่มือการติดตั้งและ Deploy)](#-deployment-guide)
-- [API Reference (เอกสาร REST API)](#-api-reference)
-- [🇹🇭 เอกสารภาษาไทย (Thai Documentation)](#-เอกสารภาษาไทย-thai-version)
+- [Overview](#-overview)
+- [System Architecture](#-system-architecture)
+- [What's New in Version 6](#-whats-new-in-version-6)
+- [What's New in Version 5](#-whats-new-in-version-5)
+- [24/7 Industrial Stability & Power-Cut Shield](#-247-industrial-stability--power-cut-shield)
+- [Offline USB Dashboard & Analytics](#-offline-usb-dashboard--analytics)
+- [OT Layer — PLC Control System](#-ot-layer--plc-control-system)
+- [Hardware & Software Requirements](#-hardware--software-requirements)
+- [Deployment Guide](#-deployment-guide)
+- [🇹🇭 เอกสารภาษาไทย (Thai Version)](#-เอกสารภาษาไทย-thai-version)
 
 ---
 
 ## 🌐 Overview
 
-**SIMATIC IOT2050 PID Tuning Application V5** is an enterprise-grade industrial edge SCADA application developed specifically for the **Siemens SIMATIC IOT2050** platform running Debian Industrial Linux. It bridges the OT (Operational Technology) realm of Siemens S7-1200 PLCs with modern IT analytics, featuring real-time HMI touch controls, remote PID parameter tuning, 24/7 localized logging, automated report generation, and standalone offline USB data visualization.
+**SIMATIC IOT2050 PID Tuning Application V6** is a mission-critical, full-stack industrial SCADA & PID tuning kiosk web application designed to run natively on the **Siemens SIMATIC IOT2050 Edge Gateway**.
 
-This application was engineered for the **Mitr Phol Pin Mill Plant** Gate Valve Control & Monitoring Project, orchestrating multiple PID control loops for valve positioning with seamless Auto, Manual, and Inactive operational modes.
+Engineered specifically for the **Gate Valve Control & Monitoring System at Mitr Phol Pin Mill Plant**, it communicates directly with **Siemens S7-1200 PLCs (PIDCompact V2 block)** over the factory OT network via the S7 communication protocol.
+
+Version 6 introduces a **Power-Cut Proof Architecture** with **OverlayFS Read-Only Root**, ensuring the system never suffers filesystem or SD card corruption from sudden operator breaker trips.
 
 ---
 
 ## 🏗️ System Architecture
 
 ```
-                    ┌────────────────────────────────────────────────────────┐
-                    │            SIEMENS S7-1200 PLC (PIDCompact V2)         │
-                    │               IP: 192.168.121.211 (DB322)              │
-                    └───────────────────────────▲────────────────────────────┘
-                                                │ S7comm Protocol (TCP Port 102)
-                                                ▼
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                SIEMENS SIMATIC IOT2050 (Debian Linux)                                  │
+                    ┌────────────────────────────────────────────┐
+                    │            SIEMENS S7-1200 PLC             │
+                    │        PIDCompact V2 (Gate Valve)          │
+                    │         IP: 192.168.121.211 (DB322)        │
+                    └─────────────────────▲──────────────────────┘
+                                          │ S7comm Protocol (TCP Port 102)
+                                          │
+┌─────────────────────────────────────────▼──────────────────────────────────────────────────────────────┐
+│                               SIEMENS SIMATIC IOT2050 (Debian Linux)                                   │
 │                                                                                                        │
-│  ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐  │
-│  │                                LAYER 1: 24/7 STABILITY & OS GUARDS                               │  │
-│  │  • save-last-time.service (Offline Clock Persistence) • journald 100MB Cap (Disk Full Guard)     │  │
-│  │  • kiosk-watchdog.service (3s UI Auto-Recovery)       • pid-usb-backup.timer (Midnight Cron)     │  │
-│  │  • Disable Console Blanking & Sleep                   • tmpfs Volatile Caching (eMMC Wear Guard) │  │
-│  └──────────────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                │                                                       │
-│  ┌─────────────────────────────────────────────▼────────────────────────────────────────────────────┐  │
-│  │                                LAYER 2: BACKEND ENGINE (Node.js / Express)                       │  │
-│  │  • nodes7 Driver: Asynchronous Polling 100ms (10Hz) Read/Write DB322                             │  │
-│  │  • 24/7 Local CSV Logger: Internal eMMC (/opt/pid-tuning-app/logs) with YYYY-MM-DD HH:mm:ss      │  │
-│  │  • Storage Diversion Guard: Auto-redirects /media/usb paths to local eMMC to prevent data loss   │  │
-│  │  • WebSocket Server: High-speed real-time data broadcasting (SP, PV, Out, Mode)                  │  │
-│  │  • Multi-FS USB Engine: Calls usb-mount-helper.sh (FAT32, NTFS, exFAT auto-detection)          │  │
-│  └──────────────────────────────────────────────────────────────────────────────────────────────────┘  │
-│                                                │                                                       │
-│  ┌─────────────────────────────────────────────▼────────────────────────────────────────────────────┐  │
-│  │                                LAYER 3: KIOSK UI & OPERATOR EXPERIENCE                           │  │
-│  │  • Smart IDLE Engine: 5-minute memory-clearing reload when idle (Prevents V8 Heap Leaks)         │  │
-│  │  • 2-Way Manual Output: Real-time sync between touch slider and numeric input (0-100% Clamping) │  │
-│  │  • Corporate Engineering PDF: High-contrast white engineering theme with official Mitr Phol logo│  │
-│  └──────────────────────────────────────────────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────┬───────────────────────────────────────────────────────┘
-                                                 │ 1-Click Save / Midnight Backup
-                                                 ▼
-┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 FLASH DRIVE USB (FAT32 / NTFS)                                         │
+│ ┌────────────────────────────────────────────────────────────────────────────────────────────────────┐ │
+│ │                         LAYER 0: POWER-CUT SHIELD & READ-ONLY STORAGE                              │ │
+│ │ • OverlayFS (overlayroot): Locks SD Card as Read-Only. Directs writes to RAM (tmpfs).             │ │
+│ │ • Auto-Repair FSCK (fsck.repair=yes): Automatically fixes dirty disk sectors in <1s during boot.   │ │
+│ │ • Volatile Journald: 50MB RAM cap, prevents SD Card wear and memory exhaustion.                    │ │
+│ └────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                 │                                                      │
+│ ┌───────────────────────────────────────────────▼────────────────────────────────────────────────────┐ │
+│ │                         LAYER 1: 24/7 STABILITY & OS GUARDS                                        │ │
+│ │ • save-last-time.service (Offline Clock Persistence) • kiosk-watchdog.service (3s UI Auto-Recovery)│ │
+│ │ • pid-usb-backup.timer (Midnight Cron Export)        • Disable Console Blanking & Sleep            │ │
+│ └────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                 │                                                      │
+│ ┌───────────────────────────────────────────────▼────────────────────────────────────────────────────┐ │
+│ │                         LAYER 2: BACKEND ENGINE (Node.js / Express)                                │ │
+│ │ • nodes7 Driver: Asynchronous Polling 250ms (4Hz) Read/Write DB322                                 │ │
+│ │ • Local CSV Logger: Fast buffering (/opt/pid-tuning-app/logs) with YYYY-MM-DD HH:mm:ss              │ │
+│ │ • WebSocket Server: High-speed real-time data broadcasting (SP, PV, Out, Mode)                     │ │
+│ │ • Multi-FS USB Engine: Calls usb-mount-helper.sh (FAT32, NTFS, exFAT auto-detection)               │ │
+│ └────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                 │                                                      │
+│ ┌───────────────────────────────────────────────▼────────────────────────────────────────────────────┐ │
+│ │                         LAYER 3: KIOSK UI & OPERATOR EXPERIENCE                                    │ │
+│ │ • Smart IDLE Engine: 5-minute memory-clearing reload when idle (Prevents V8 Heap Leaks)            │ │
+│ │ • 2-Way Manual Output: Real-time sync between touch slider and numeric input (0-100% Clamping)    │ │
+│ │ • Corporate Engineering PDF: High-contrast white engineering theme with official Mitr Phol logo   │ │
+│ └────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────┬──────────────────────────────────────────────────────┘
+                                                  │ 1-Click Save / Midnight Backup
+                                                  │
+┌─────────────────────────────────────────────────▼──────────────────────────────────────────────────────┐
+│                                FLASH DRIVE USB (FAT32 / NTFS)                                          │
 │                                                                                                        │
-│  📂 PID_Logs_Backup/2026-08-26/                                                                        │
-│   ├── 📄 log_CV_101_2026-08-26.csv (Raw Clean CSV Data)                                               │
-│   ├── 📄 log_TIC_201_2026-08-26.csv                                                                    │
-│   └── 🌐 Click_To_View_Chart.html (🌟 Double-click in browser: Multi-Loop & Multi-Date Interactive UI)│
+│ 📂 PID_Logs_Backup/2026-09-05/                                                                         │
+│  ├── 📄 log_CV_101_2026-09-05.csv (Raw Clean CSV Data)                                                │
+│  ├── 📄 log_TIC_201_2026-09-05.csv                                                                     │
+│  └── 🌐 Click_To_View_Chart.html (🌟 Double-click in browser: Multi-Loop & Multi-Date Interactive UI) │
 └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🌟 What's New in Version 6
+
+| Feature | Description |
+|---|---|
+| 🛡️ **Power-Cut Proof Architecture (OverlayFS)** | Mounts the root filesystem (`/`) as strictly **Read-Only**. All runtime changes, logs, and Chromium caches are written to **RAM (`tmpfs`)**. The SD card is completely immune to corruptions when operators switch off main power breakers. |
+| ⚡ **Kernel Boot Auto-Repair (`fsck.repair=yes`)** | Automatically repairs filesystem discrepancies during boot without hanging in emergency mode or requiring an on-site keyboard. |
+| 🛠️ **Chroot Maintenance Shortcuts** | Added CLI commands `sudo edit-system`, `sudo disable-readonly`, and `sudo enable-readonly` for instant system modifications without disabling permanent protection. |
+| 🧹 **Volatile 50MB Journald Cap** | Configured `Storage=volatile` with a 50MB RAM cap to eliminate SD Card write exhaustion. |
+| 🚀 **Automated V6 Deploy Patch** | Fully upgraded PowerShell deployment script (`Deploy-Patch.ps1`) with UTF-8 console output and one-click OverlayFS activation. |
 
 ---
 
@@ -110,54 +130,44 @@ This application was engineered for the **Mitr Phol Pin Mill Plant** Gate Valve 
 | ⏱️ **Offline Real-Time Clock Persistence** | Built-in systemd services (`save-last-time`, `save-time-on-shutdown`) saving system clock every 20s. Eliminates time rollback to year 2019 on isolated industrial networks without NTP. |
 | 🔢 **2-Way Synchronized Manual Output** | Full bidirectional sync between proportional slider and numeric input field with 0.0% – 100.0% boundary clamping and parameter lock bypass for operators. |
 | 📑 **Corporate Engineering PDF Report** | Ink-efficient, high-contrast white background theme formatted for A4 landscape printing and official management audits. |
-| 🛡️ **Storage Diversion Safety Guard** | Automatically diverts any accidental `/media/usb` logging paths to local internal eMMC `/opt/pid-tuning-app/logs/` to prevent log corruption when USB is detached. |
-| 🕒 **Clean Universal Timestamps** | Formats all CSV logs and HTML tables cleanly as `YYYY-MM-DD HH:mm:ss` (Asia/Bangkok UTC+7), stripping milliseconds and ISO `T/Z` notations. |
+| 🛡️ **Storage Diversion Safety Guard** | Automatically diverts any accidental `/media/usb` logging paths to local internal storage to prevent log corruption when USB is detached. |
+| 🕒 **Clean Universal Timestamps** | Formats all CSV logs and HTML tables cleanly as `YYYY-MM-DD HH:mm:ss` (Asia/Bangkok UTC+7). |
 | 🔌 **Multi-Filesystem USB Auto-Mounter** | Dedicated kernel helper script (`usb-mount-helper.sh`) supporting FAT32, NTFS (with dirty-flag clearing), and multi-partition flash drives. |
 
 ---
 
-## 🛡️ 24/7 Industrial Stability System
+## 🛡️ 24/7 Industrial Stability & Power-Cut Shield
 
-The V5 release integrates a multi-layered stability shield designed for harsh plant environments:
-
-1. **5-Minute Smart Idle Auto-Refresh:** Reloads the Kiosk browser when untouched for 5 minutes with locked parameters, completely wiping Chromium V8 heap memory to prevent long-term sluggishness.
-2. **100ms (10Hz) Asynchronous PLC Polling:** High-speed, non-blocking DB communication loop ensuring rapid response without thread starvation.
-3. **Canvas CPU Throttling (200ms / 5Hz):** UI charts update smoothly via `update('none')`, reducing CPU software rendering load by over 70%.
-4. **Self-Healing Watchdog:** Background monitor (`kiosk-watchdog.service`) checks X11 display, Chromium, and Node.js every 10 seconds, auto-recovering failed services within 3 seconds.
-5. **eMMC Disk Wear Protection:** Capped `systemd-journald` size at 100MB and mounted `/tmp` to `tmpfs` RAM disk to preserve flash memory longevity.
+1. **Read-Only Root Protection:** SD Card cannot be corrupted regardless of how abruptly power is removed.
+2. **Smart IDLE Auto-Refresh (5 min):** Background garbage collection reload when idle to keep Chromium heap clean.
+3. **250ms (4Hz) High-Speed Real-Time Polling:** Balanced read/write performance with low CPU overhead.
+4. **Canvas CPU Throttling:** Smooth rendering at 200ms (5Hz) reducing GPU/CPU consumption by 70%.
+5. **Self-Healing Watchdog:** Continuously verifies X11 Server, Chromium Kiosk, and Node.js backend. Auto-restarts broken components in <3 seconds.
 
 ---
 
 ## 📊 Offline USB Dashboard & Analytics
 
-When an operator clicks **"📥 Save Log to USB"** or when the midnight auto-backup triggers:
-1. The USB drive is auto-mounted via `usb-mount-helper.sh`.
-2. All historical `.csv` files are copied into `PID_Logs_Backup/YYYY-MM-DD/`.
-3. `generate-usb-viewer.js` dynamically compiles and outputs **`Click_To_View_Chart.html`**.
-4. The USB drive is synced and safely unmounted.
-
-**Opening `Click_To_View_Chart.html` on any PC provides:**
-* Dual dropdowns to select any PID Loop and historical date.
-* Interactive zoomable Canvas trend graph (SP, PV, Output%).
-* Automated statistics: Max PV, Min PV, Average PV, Average SP Error.
-* Paginated tabular log sample preview.
-* 1-Click Print / Save as PDF capability.
+When engineers click **"📥 Save Log to USB"** or when the midnight timer triggers, the system:
+1. Copies all CSV logs into dated folders on the USB Flash Drive.
+2. Automatically generates `Click_To_View_Chart.html` in the backup folder.
+3. Allows engineers to view interactive charts, KPI metrics, and export reports on any Windows/Mac laptop without installing software.
 
 ---
 
-## ⚙️ OT Layer — PLC Control System
+## 🎛️ OT Layer — PLC Control System
 
 ### Supported Controller & Algorithm
-* **PLC:** Siemens S7-1200 (CPU 1214C / 1215C / 1217C)
-* **PID Function Block:** Siemens `PIDCompact` (Technology Object V2.x)
-* **Default Data Block:** `DB322` (Configurable via UI)
+* **PLC:** Siemens S7-1200 / S7-1500
+* **Algorithm:** Siemens PIDCompact V2 (TIA Portal V16/V17/V18/V19)
+* **Application:** Gate Valve Position & Feed Flow Regulation
 
-### Standard DB Memory Offsets
-| Tag Name | Data Type | Default Offset | Description |
+### Standard DB Memory Offsets (DB322)
+| Field | Type | Offset | Description |
 |---|---|---|---|
-| `Setpoint` | Real (Float32) | `0.0` | Target Setpoint value |
-| `ProcessValue` | Real (Float32) | `4.0` | Current Process Value (PV) |
-| `Output` | Real (Float32) | `8.0` | Controller Output (0.0 – 100.0%) |
+| `Setpoint` | Real (Float32) | `0.0` | Target Process Variable (SP) |
+| `ProcessValue` | Real (Float32) | `4.0` | Measured Sensor Value (PV) |
+| `Output` | Real (Float32) | `8.0` | Control Valve Output (0-100%) |
 | `ManualValue` | Real (Float32) | `12.0` | Manual Output target |
 | `ManualEnable` | Bool | `16.0` | Toggle Manual Mode |
 | `Reset` | Bool | `16.1` | Fault Reset Command |
@@ -173,14 +183,15 @@ When an operator clicks **"📥 Save Log to USB"** or when the midnight auto-bac
 
 ### Hardware
 * **Edge Gateway:** Siemens SIMATIC IOT2050 (Basic / Advanced)
-* **Storage:** 16GB+ eMMC or High-Endurance MicroSD
+* **Storage:** 16GB+ eMMC or High-Endurance MicroSD Card (Class A2 recommended)
 * **PLC:** Siemens S7-1200 / S7-1500 with Ethernet interface
-* **Touchscreen:** HDMI/DisplayPort 1080p Touch Monitor
+* **Display:** HDMI/DisplayPort 1080p Industrial Touchscreen
 
 ### Software
 * **OS:** Siemens Industrial OS / Debian 11/12 (ARM64)
+* **Overlay Layer:** Overlayroot (tmpfs)
 * **Runtime:** Node.js v18.x or v20.x LTS
-* **Browser:** Chromium in Kiosk mode with hardware acceleration flags
+* **Browser:** Chromium in Kiosk mode with GPU-disabled flags
 
 ---
 
@@ -194,9 +205,9 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-Patch.ps1
 
 ### What `Deploy-Patch.ps1` executes:
 1. Transfers core application files (`server.js`, `public/`, `src/`, `generate-usb-viewer.js`, `usb-mount-helper.sh`, `usb-unmount-helper.sh`).
-2. Configures executable file permissions (`chmod +x`).
-3. Executes `setup-247-stability.sh` to install systemd services and timers.
-4. Gracefully restarts `pid-app.service` and `kiosk.service`.
+2. Deploys and executes `setup-247-stability.sh` to configure OverlayFS, systemd services, and kernel boot auto-repair.
+3. Gracefully restarts `pid-app.service` and `kiosk.service`.
+4. Prompts for immediate reboot to activate 100% Power-Cut protection.
 
 ---
 
@@ -208,21 +219,44 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-Patch.ps1
 
 ## 🌐 ภาพรวมระบบ (Overview)
 
-**SIMATIC IOT2050 PID Tuning Application V5** เป็น Web Application อุตสาหกรรมแบบ Full-Stack ที่ทำงานบน **Siemens SIMATIC IOT2050 Edge Gateway** โดยตรง พัฒนาเพื่อ **โครงการควบคุมและตรวจสอบ Gate Valve ของโรงงาน Mitr Phol Pin Mill Plant** โดยเฉพาะ เชื่อมต่อตรงกับ **Siemens S7-1200 PLC** ผ่านพอร์ตแลนโรงงานแบบ Real-time ตลอด 24 ชม. 365 วัน
+**SIMATIC IOT2050 PID Tuning Application V6** เป็น Web Application อุตสาหกรรมแบบ Full-Stack ที่ทำงานบน **Siemens SIMATIC IOT2050 Edge Gateway** โดยตรง พัฒนาขึ้นสำหรับ **โครงการควบคุมและตรวจสอบ Gate Valve ของโรงงาน Mitr Phol Pin Mill Plant** โดยเฉพาะ เชื่อมต่อตรงกับ **Siemens S7-1200 PLC** ผ่านพอร์ตแลนโรงงานแบบ Real-time ตลอด 24 ชม. 365 วัน
+
+ในเวอร์ชัน 6 นี้ ได้รับการอัปเกรดระบบ **Power-Cut Proof Architecture (เกราะป้องกันการตัดไฟ)** ด้วยเทคโนโลยี **OverlayFS Read-Only Root** เพื่อป้องกันปัญหา OS พังหรือ SD Card เสียหายจากการสับเบรกเกอร์หรือดึงปลั๊กผิดวิธี 100%
 
 ---
 
-## 🌟 ฟีเจอร์เด่นในเวอร์ชัน 5 (V5 New Features)
+## 🌟 ฟีเจอร์เด่นในเวอร์ชัน 6 (V6 New Features)
+
+### 1. 🛡️ ระบบป้องกันไฟดับถาวร (OverlayFS Read-Only Root)
+* ล็อกพาร์ติชันระบบ OS (`/`) บน MicroSD Card ให้เป็น **Read-Only (อ่านได้อย่างเดียว ห้ามเขียน)**
+* ย้ายข้อมูลชั่วคราว, แคชของ Chromium Browser และ Log ของระบบทั้งหมดไปเขียนบน **RAM (`tmpfs`)**
+* **ผลลัพธ์:** ผู้ใช้งานหน้างานสามารถสับเบรกเกอร์หรือดึงปลั๊กไฟตู้ได้ตลอดเวลา โดยที่ SD Card จะไม่ได้รับผลกระทบใดๆ บูตเครื่องใหม่ติดสมบูรณ์ 100% เสมอ ไม่ต้องฟอร์แมตใหม่อีกต่อไป
+
+### 2. ⚡ ระบบซ่อมแซมไฟล์ระบบตอนบูตอัตโนมัติ (`fsck.repair=yes`)
+* เพิ่มคำสั่งซ่อมแซม Disk ลงในระดับ Bootloader Kernel Arguments
+* หากตรวจพบ Dirty Inode ระบบจะทำการซ่อมแซมตัวเองภายใน 1 วินาทีตอนเปิดเครื่อง โดยไม่ต้องรอคีย์บอร์ดต่อเข้ามาเพื่อกด Enter
+
+### 3. 🛠️ คำสั่งลัดสำหรับการดูแลรักษาระบบ (Maintenance Shortcuts)
+* `sudo edit-system` : เข้าสู่โหมดแก้ไขไฟล์ระบบโดยตรง (Chroot Write Mode)
+* `sudo disable-readonly` : ปิดโหมด Read-Only ชั่วคราวเมื่อต้องการอัปเกรดซอฟต์แวร์ชุดใหญ่
+* `sudo enable-readonly` : เปิดโหมด Read-Only เพื่อคุ้มครองระบบให้ปลอดภัย
+
+### 4. 🧹 จำกัดขนาด Journald Log 50MB บน RAM
+* ตั้งค่า `Storage=volatile` และจำกัดขนาดบันทึกใน RAM ไม่เกิน 50MB เพื่อลดภาระการใช้ RAM ของ IOT2050 Basic (1GB)
+
+---
+
+## 🌟 ฟีเจอร์เด่นในเวอร์ชัน 5 (V5 Features)
 
 ### 1. 🌐 ระบบดูกราฟออฟไลน์ผ่าน USB (`Click_To_View_Chart.html`)
 * เมื่อกดปุ่ม **"📥 Save Log to USB"** ระบบจะคัดลอกไฟล์ Log ทั้งหมดลง Flash Drive พร้อมสร้างไฟล์ Dashboard HTML ให้อัตโนมัติ
 * **เปิดดูบนคอมพิวเตอร์เครื่องไหนก็ได้:** ดับเบิ้ลคลิกเปิดผ่าน Google Chrome / Microsoft Edge ได้ทันทีโดยไม่ต้องติดตั้งโปรแกรม Excel
 * **2 Dropdown System:** เลือกดูข้อมูลแยกตาม Loop (เช่น `CV-101`, `TIC-201`) และเลือกดูตามวันที่ย้อนหลังได้ทุกไฟล์
-* **สถิติ & กราฟ Interactive:** สรุปค่า Max/Min/Avg, ค่า Error, ตารางข้อมูล, และกราฟซูมเลื่อนเมาส์ดูค่าได้อย่างละเอียด พร้อมปุ่มพิมพ์รายงานออกทางเครื่องพิมพ์
+* **สถิติ & กราฟ Interactive:** สรุปค่า Max/Min/Avg, ค่า Error, ตารางข้อมูล และกราฟซูมเลื่อนเมาส์ดูค่าได้อย่างละเอียด พร้อมปุ่มพิมพ์รายงานออกทางเครื่องพิมพ์
 
 ### 2. ⏱️ ระบบจำเวลาออฟไลน์ (Offline Time Persistence)
-* แก้ปัญหา IOT2050 ที่ไม่มีแบตเตอรี่ RTC และไม่มีสัญญาณอินเทอร์เน็ต/NTP ซึ่งในอดีตทำให้เวลาเด้งกลับไปปี 2019 เมื่อไฟดับ
-* ติดตั้ง Service `save-last-time` บันทึกเวลาลงชิปทุก 20 วินาที และดึงเวลากลับมาทันทีตอนบูตเครื่อง เวลาจึงเดินต่อเนื่องเสมอ ไม่ข้ามวัน
+* แก้ปัญหา IOT2050 ที่ไม่มีแบตเตอรี่ RTC และไม่มีสัญญาณอินเทอร์เน็ต NTP ซึ่งในอดีตทำให้เวลาเด้งกลับไปปี 2019 เมื่อไฟดับ
+* ติดตั้ง Service `save-last-time` บันทึกเวลาลงชิปทุก 20 วินาที และดึงเวลากลับมาทันทีตอนบูตเครื่อง เวลาจึงเดินต่อเนื่องเสมอไม่ข้ามวัน
 
 ### 3. 🔢 ควบคุม Manual Output แบบ 2-Way Sync
 * รองรับทั้งการเลื่อน Slider หรือพิมพ์ตัวเลขในช่อง Manual Input โดยค่าทั้งสองจะขยับตามกันทันที
@@ -232,17 +266,17 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-Patch.ps1
 * รายงานแบบ A4 แนวนอน พื้นหลังสีขาวสะอาดตา ปริ้นต์ง่าย ไม่เปลืองหมึก พร้อมกราฟความละเอียดสูงและตารางข้อมูลที่เป็นทางการ
 
 ### 5. 🛡️ ระบบป้องกันความปลอดภัย Storage Diversion Guard
-* ป้องกันกรณีผู้ใช้เผลอตั้ง Path บันทึกลง `/media/usb` โดยระบบจะดักจับและเปลี่ยนมาเขียนลงหน่วยความจำ eMMC ของเครื่องอัตโนมัติ เพื่อป้องกันไฟล์เสียหายเมื่อถอด Flash Drive
+* ป้องกันกรณีผู้ใช้เผลอตั้ง Path บันทึกลง `/media/usb` โดยระบบจะดักจับและเปลี่ยนมาเขียนลงหน่วยความจำของเครื่องอัตโนมัติ เพื่อป้องกันไฟล์เสียหายเมื่อถอด Flash Drive
 
 ---
 
 ## 🛡️ ระบบความเสถียร 24/7 (24/7 Industrial Stability)
 
-1. **Smart IDLE Auto-Refresh (5 นาที):** รีเฟรชหน้าจอเบื้องหลังทุก 5 นาทีเมื่อไม่มีคนใช้งาน เพื่อคืน RAM ให้ระบบ ป้องกันอาการ Browser อืดหรือแรมรั่ว
-2. **100ms (10Hz) High-Speed Real-Time Polling:** อ่านข้อมูลจาก PLC ด้วยความถี่ 10 ครั้ง/วินาที รวดเร็ว แม่นยำ
-3. **Canvas CPU Throttling:** ปรับการวาดกราฟที่ความถี่ 200ms (5Hz) ช่วยลดภาระ CPU Rendering ลง 70% หน้าจอวิ่งลื่นไหลไม่กระตุก
-4. **Self-Healing Watchdog:** ตรวจสอบทั้ง X11 Server, Chromium Kiosk และ Node.js ตลอด 24 ชม. หากมีจุดใดดับ จะกู้คืนกลับมาให้อัตโนมัติใน 3 วินาที
-5. **eMMC Wear Protection:** จำกัดขนาด Log ของระบบ Linux ไม่เกิน 100MB และโยกย้ายไฟล์แคชชั่วคราวไปไว้บน RAM (tmpfs) เพื่อยืดอายุการใช้งานฮาร์ดแวร์
+1. **Power-Cut Proof:** ป้องกันความเสียหายจากไฟกระชากและไฟดับกะทันหัน 100%
+2. **Smart IDLE Auto-Refresh (5 นาที):** รีเฟรชหน้าจอเบื้องหลังทุก 5 นาทีเมื่อไม่มีคนใช้งาน เพื่อคืน RAM ให้ระบบ ป้องกันอาการ Browser อืดหรือแรมรั่ว
+3. **250ms (4Hz) Balanced Polling:** อ่านข้อมูลจาก PLC รวดเร็ว แม่นยำ และกินโหลด CPU ต่ำ
+4. **Canvas CPU Throttling:** ปรับการวาดกราฟที่ความถี่ 200ms (5Hz) ช่วยลดภาระ CPU Rendering ลง 70% หน้าจอวิ่งลื่นไหลไม่กระตุก
+5. **Self-Healing Watchdog:** ตรวจสอบทั้ง X11 Server, Chromium Kiosk และ Node.js ตลอด 24 ชม. หากมีจุดใดดับ จะกู้คืนกลับมาให้อัตโนมัติใน 3 วินาที
 
 ---
 
@@ -253,10 +287,9 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-Patch.ps1
 powershell -ExecutionPolicy Bypass -File .\Deploy-Patch.ps1
 ```
 
-
 ---
 
 ### 👨‍💻 ผู้พัฒนาและดูแลระบบ (Developer & Maintainer)
 * **ผู้พัฒนา:** Dream Piyapong ([@xFreedom777](https://github.com/xFreedom777))
-* **GitHub Repository:** [SIMATIC-IOT2050-PID-TUNING-APPLICATION-V5](https://github.com/xFreedom777/SIMATIC-IOT2050-PID-TUNING-APPLICATION-V5)
+* **GitHub Repository:** [SIMATIC-IOT2050-PID-TUNING-APPLICATION-V6](https://github.com/xFreedom777/SIMATIC-IOT2050-PID-TUNING-APPLICATION-V6)
 * **โรงงาน:** Mitr Phol Pin Mill Plant (Gate Valve Control Project)

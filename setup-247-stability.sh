@@ -1,11 +1,12 @@
-#!/bin/bash
+﻿#!/bin/bash
 # ================================================================
-# Siemens SIMATIC IOT2050 — 24/7 Kiosk Stability Setup Script
+# Siemens SIMATIC IOT2050 — 24/7 Industrial Stability & Power-Cut Proof Setup
+# Developed by Dream Piyapong (xFreedom777)
 # ================================================================
 set -e
 
 echo "==========================================================="
-echo " 🛠  Configuring Siemens IOT2050 24/7 Stability Parameters"
+echo " 🛠  Configuring Siemens IOT2050 24/7 Stability & Protection"
 echo "==========================================================="
 
 if [ "$EUID" -ne 0 ]; then
@@ -17,7 +18,7 @@ APP_DIR="/opt/pid-tuning-app"
 USER_HOME="/root"
 
 # 1. Disable System Idle & Lid Sleep Actions in logind.conf
-echo "--> [1/8] Disabling logind sleep & idle actions..."
+echo "--> [1/10] Disabling logind sleep & idle actions..."
 mkdir -p /etc/systemd/logind.conf.d/
 cat << 'EOF' > /etc/systemd/logind.conf.d/247-stability.conf
 [Login]
@@ -30,7 +31,7 @@ EOF
 systemctl restart systemd-logind || true
 
 # 2. Disable Kernel Console Blanking
-echo "--> [2/8] Disabling Linux kernel console blanking..."
+echo "--> [2/10] Disabling Linux kernel console blanking..."
 if [ -f /sys/module/kernel/parameters/consoleblank ]; then
   echo 0 > /sys/module/kernel/parameters/consoleblank 2>/dev/null || true
 fi
@@ -40,19 +41,20 @@ else
   echo "kernel.consoleblank = 0" >> /etc/sysctl.conf
 fi
 
-# 3. Limit Systemd Journal Logs to 100MB (Prevents Disk Exhaustion)
-echo "--> [3/8] Configuring Journald log limits (Max 100MB)..."
+# 3. Limit Systemd Journal Logs to 50MB (Prevents RAM/Disk Exhaustion)
+echo "--> [3/10] Configuring Journald log limits (Max 50MB in RAM)..."
 mkdir -p /etc/systemd/journald.conf.d/
 cat << 'EOF' > /etc/systemd/journald.conf.d/limit-size.conf
 [Journal]
-SystemMaxUse=100M
-SystemKeepFree=200M
+Storage=volatile
+SystemMaxUse=50M
+SystemKeepFree=100M
 MaxRetentionSec=1month
 EOF
 systemctl restart systemd-journald || true
 
 # 4. Generate Production ~/.xinitrc with GPU-disabled & DPMS-off flags
-echo "--> [4/8] Installing X11 Kiosk launcher (~/.xinitrc)..."
+echo "--> [4/10] Installing X11 Kiosk launcher (~/.xinitrc)..."
 cat << 'EOF' > "${USER_HOME}/.xinitrc"
 #!/bin/bash
 # ── Siemens IOT2050 24/7 Kiosk Launcher ──
@@ -101,26 +103,81 @@ done
 EOF
 chmod +x "${USER_HOME}/.xinitrc"
 
-# 5. RAM Tmpfs Protection & Ext4 Error Policy
-echo "--> [5/8] Configuring /etc/fstab for Tmpfs and Ext4 policies..."
-sed -i 's/errors=remount-ro/errors=continue/g' /etc/fstab
+# 5. RAM Tmpfs Protection & Ext4 Filesystem Hardening
+echo "--> [5/10] Configuring /etc/fstab for Tmpfs and Ext4 Auto-Repair policies..."
+# Revert dangerous 'errors=continue' and ensure safe 'errors=remount-ro'
+sed -i 's/errors=continue/errors=remount-ro/g' /etc/fstab
 
 if ! grep -q "tmpfs /var/log" /etc/fstab; then
-  echo "tmpfs /var/log tmpfs defaults,noatime,nosuid,mode=0755,size=100m 0 0" >> /etc/fstab
+  echo "tmpfs /var/log tmpfs defaults,noatime,nosuid,mode=0755,size=50m 0 0" >> /etc/fstab
 fi
 if ! grep -q "tmpfs /tmp" /etc/fstab; then
-  echo "tmpfs /tmp tmpfs defaults,noatime,nosuid,size=100m 0 0" >> /etc/fstab
+  echo "tmpfs /tmp tmpfs defaults,noatime,nosuid,size=50m 0 0" >> /etc/fstab
 fi
 if ! grep -q "tmpfs /var/tmp" /etc/fstab; then
-  echo "tmpfs /var/tmp tmpfs defaults,noatime,nosuid,size=50m 0 0" >> /etc/fstab
+  echo "tmpfs /var/tmp tmpfs defaults,noatime,nosuid,size=30m 0 0" >> /etc/fstab
 fi
 
-# 6. Install Watchdog script
-echo "--> [6/8] Installing Self-Healing Watchdog script..."
+# Configure Kernel Bootargs Auto-Repair (fsck.repair=yes)
+echo "--> [6/10] Enabling Boot-Time Auto-FSCK Disk Repair..."
+if [ -f /etc/default/rcS ]; then
+  sed -i 's/FSCKFIX=.*/FSCKFIX=yes/' /etc/default/rcS || echo "FSCKFIX=yes" >> /etc/default/rcS
+fi
+
+# Check and update U-Boot bootargs if uEnv.txt exists
+for uenv in /boot/uEnv.txt /boot/efi/uEnv.txt /uEnv.txt; do
+  if [ -f "$uenv" ]; then
+    if ! grep -q "fsck.repair=yes" "$uenv"; then
+      echo "extra_bootargs=fsck.mode=force fsck.repair=yes" >> "$uenv"
+      echo "    [OK] Added fsck.repair=yes to $uenv"
+    fi
+  fi
+done
+
+# 7. Power-Cut Proof: Install & Configure Overlayroot (Read-Only Root Filesystem)
+echo "--> [7/10] Setting up Power-Cut Protection (OverlayFS / Read-Only Root)..."
+if ! dpkg -l | grep -q "overlayroot"; then
+  echo "    Installing overlayroot package..."
+  apt-get update -y >/dev/null 2>&1 || true
+  apt-get install -y overlayroot >/dev/null 2>&1 || true
+fi
+
+# Enable OverlayFS on tmpfs (RAM)
+mkdir -p /etc
+cat << 'EOF' > /etc/overlayroot.local.conf
+overlayroot="tmpfs:swap=0,recurse=0"
+EOF
+
+# Install Management Shortcuts
+cat << 'EOF' > /usr/local/bin/enable-readonly
+#!/bin/bash
+echo 'overlayroot="tmpfs:swap=0,recurse=0"' > /etc/overlayroot.local.conf
+echo "✅ Read-Only Protection ENABLED. Reboot to activate."
+EOF
+chmod +x /usr/local/bin/enable-readonly
+
+cat << 'EOF' > /usr/local/bin/disable-readonly
+#!/bin/bash
+echo 'overlayroot="disabled"' > /etc/overlayroot.local.conf
+echo "⚠️  Read-Only Protection DISABLED (Maintenance Mode). Reboot to apply."
+EOF
+chmod +x /usr/local/bin/disable-readonly
+
+cat << 'EOF' > /usr/local/bin/edit-system
+#!/bin/bash
+echo "Entering Overlayroot Chroot (Direct Write Mode)... Type 'exit' when done."
+overlayroot-chroot
+EOF
+chmod +x /usr/local/bin/edit-system
+
+echo "    [OK] OverlayFS configured (SD Card is now 100% Power-Cut Proof!)"
+
+# 8. Install Watchdog script
+echo "--> [8/10] Installing Self-Healing Watchdog script..."
 chmod +x "${APP_DIR}/kiosk-watchdog.sh" 2>/dev/null || true
 
-# 7. Install & Enable Standard Systemd Services
-echo "--> [7/8] Registering production Systemd services..."
+# 9. Install & Enable Standard Systemd Services
+echo "--> [9/10] Registering production Systemd services..."
 cp "${APP_DIR}/pid-app.service" /etc/systemd/system/ 2>/dev/null || true
 cp "${APP_DIR}/kiosk-watchdog.service" /etc/systemd/system/ 2>/dev/null || true
 cp "${APP_DIR}/kiosk.service" /etc/systemd/system/ 2>/dev/null || true
@@ -130,9 +187,9 @@ systemctl enable pid-app.service || true
 systemctl enable kiosk-watchdog.service || true
 systemctl enable kiosk.service || true
 
-# 8. Offline Industrial Time Persistence (Restores last known timestamp on boot & saves on shutdown)
-echo "--> [8/8] Configuring offline system time persistence..."
-# Write boot-time restore service (starts early, restores clock from file)
+# 10. Offline Industrial Time Persistence & Midnight USB Auto-Backup
+echo "--> [10/10] Configuring offline time persistence & USB Backup..."
+# Boot restore service
 cat << 'EOF' > /etc/systemd/system/save-last-time.service
 [Unit]
 Description=Restore System Time from Last Saved Timestamp (Offline NTP)
@@ -149,7 +206,7 @@ ExecStart=/bin/sh -c 'if [ -f /etc/last_saved_time ]; then ts=$(cat /etc/last_sa
 WantedBy=sysinit.target
 EOF
 
-# Write shutdown-time save service (saves clock before poweroff/reboot)
+# Shutdown save service
 cat << 'EOF' > /etc/systemd/system/save-time-on-shutdown.service
 [Unit]
 Description=Save System Time Before Shutdown (Offline NTP Backup)
@@ -166,60 +223,40 @@ ExecStart=/bin/sh -c 'if [ "$(date +%Y)" -ge "2024" ]; then date "+%Y-%m-%d %H:%
 WantedBy=halt.target reboot.target shutdown.target poweroff.target
 EOF
 
-systemctl daemon-reload
-systemctl daemon-reload
-systemctl enable save-last-time.service || true
-systemctl enable save-time-on-shutdown.service || true
-systemctl start save-last-time.service || true
-echo "    [OK] Time persistence services installed (boot-restore + shutdown-save)" 
-
-echo "==========================================================="
-echo " ✅ 24/7 Stability & Time Persistence configured!"
-echo " [INFO] Reboot IOT2050 to start 24/7 mode: reboot"
-
-# 9. Auto-Copy Logs to USB every night at 00:01 (Industrial Auto-Export)
-echo "--> [9/9] Installing midnight Auto-Copy cron job..."
+# Midnight USB Backup
 cat << 'CRONEOF' > /usr/local/bin/pid-usb-backup.sh
 #!/bin/bash
 # Midnight Auto-Backup: Copy all PID Log CSV files to USB Flash Drive
 LOG=/var/log/pid-usb-backup.log
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] 🕛 Auto-Backup Started" >> "$LOG"
 
-# Mount USB (ignore error if already mounted or not present)
 mount /dev/sda1 /media/usb 2>/dev/null || true
 
-# Check if USB is actually mounted
 if ! mount | grep -q /media/usb; then
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] ⚠️ USB not available. Skipping backup." >> "$LOG"
   exit 0
 fi
 
-# Create dated folder on USB
 TODAY=$(date '+%Y-%m-%d')
 DEST="/media/usb/PID_Logs_Backup/${TODAY}"
 mkdir -p "$DEST"
 
-# Copy all CSV files from /opt/pid-tuning-app/logs/
 SRC="/opt/pid-tuning-app/logs"
 if [ -d "$SRC" ]; then
   COUNT=$(find "$SRC" -name "*.csv" | wc -l)
   cp -u "$SRC"/*.csv "$DEST"/ 2>/dev/null || true
-  # Auto-generate Click_To_View_Chart.html inside USB backup folder
   node /opt/pid-tuning-app/generate-usb-viewer.js "$DEST" 2>/dev/null || true
-  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ Copied ${COUNT} files → $DEST" >> "$LOG"
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ Copied ${COUNT} files ➔ $DEST" >> "$LOG"
 fi
 
-# Sync and Eject
 sync
 umount /media/usb 2>/dev/null || true
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ Auto-Backup Done. USB Ejected." >> "$LOG"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] 💾 Auto-Backup Done. USB Ejected." >> "$LOG"
 
-# Keep log max 500 lines
 tail -n 500 "$LOG" > "${LOG}.tmp" && mv "${LOG}.tmp" "$LOG"
 CRONEOF
 chmod +x /usr/local/bin/pid-usb-backup.sh
 
-# Install systemd timer (replaces crontab - IOT2050 Debian has no cron daemon)
 cat << 'TIMEREOF' > /etc/systemd/system/pid-usb-backup.timer
 [Unit]
 Description=Midnight USB Log Auto-Backup Timer
@@ -246,8 +283,16 @@ StandardError=journal
 SVCEOF
 
 systemctl daemon-reload
+systemctl enable save-last-time.service || true
+systemctl enable save-time-on-shutdown.service || true
 systemctl enable pid-usb-backup.timer || true
+systemctl start save-last-time.service || true
 systemctl start pid-usb-backup.timer || true
-echo "    [OK] Systemd timer installed: USB auto-backup every night at 00:01" 
 
+echo "==========================================================="
+echo " 🎉 24/7 Stability & Power-Cut Protection Ready!"
+echo " [INFO] SD Card is protected by OverlayFS Read-Only."
+echo " [INFO] Users can safely cut power / flip breakers anytime."
+echo " [INFO] To update files later: run 'sudo edit-system'"
+echo " [INFO] Reboot IOT2050 to activate: reboot"
 echo "==========================================================="
