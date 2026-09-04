@@ -138,11 +138,12 @@ Version 6 introduces a **Power-Cut Proof Architecture** with **OverlayFS Read-On
 
 ## 🛡️ 24/7 Industrial Stability & Power-Cut Shield
 
-1. **Read-Only Root Protection:** SD Card cannot be corrupted regardless of how abruptly power is removed.
-2. **Smart IDLE Auto-Refresh (5 min):** Background garbage collection reload when idle to keep Chromium heap clean.
-3. **250ms (4Hz) High-Speed Real-Time Polling:** Balanced read/write performance with low CPU overhead.
+1. **Power-Cut Proof Architecture:** SD Card and OS cannot be corrupted regardless of how abruptly power is removed, thanks to OverlayFS Read-Only Root.
+2. **Smart IDLE Auto-Refresh (5 min):** Background garbage collection reload when idle to keep Chromium heap clean and prevent memory leaks.
+3. **250ms (4Hz) Balanced Polling:** Asynchronous real-time PLC read/write with low CPU overhead.
 4. **Canvas CPU Throttling:** Smooth rendering at 200ms (5Hz) reducing GPU/CPU consumption by 70%.
 5. **Self-Healing Watchdog:** Continuously verifies X11 Server, Chromium Kiosk, and Node.js backend. Auto-restarts broken components in <3 seconds.
+6. **eMMC & SD Card Wear Protection:** Caps volatile Linux journal logs to 50MB and diverts all temporary caches/logs to RAM (tmpfs) to maximize flash hardware lifespan.
 
 ---
 
@@ -272,11 +273,12 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-Patch.ps1
 
 ## 🛡️ ระบบความเสถียร 24/7 (24/7 Industrial Stability)
 
-1. **Power-Cut Proof:** ป้องกันความเสียหายจากไฟกระชากและไฟดับกะทันหัน 100%
+1. **Power-Cut Proof Architecture:** ป้องกันความเสียหายจากไฟกระชากและการสับเบรกเกอร์กะทันหัน 100% ด้วย OverlayFS Read-Only Root
 2. **Smart IDLE Auto-Refresh (5 นาที):** รีเฟรชหน้าจอเบื้องหลังทุก 5 นาทีเมื่อไม่มีคนใช้งาน เพื่อคืน RAM ให้ระบบ ป้องกันอาการ Browser อืดหรือแรมรั่ว
 3. **250ms (4Hz) Balanced Polling:** อ่านข้อมูลจาก PLC รวดเร็ว แม่นยำ และกินโหลด CPU ต่ำ
 4. **Canvas CPU Throttling:** ปรับการวาดกราฟที่ความถี่ 200ms (5Hz) ช่วยลดภาระ CPU Rendering ลง 70% หน้าจอวิ่งลื่นไหลไม่กระตุก
 5. **Self-Healing Watchdog:** ตรวจสอบทั้ง X11 Server, Chromium Kiosk และ Node.js ตลอด 24 ชม. หากมีจุดใดดับ จะกู้คืนกลับมาให้อัตโนมัติใน 3 วินาที
+6. **eMMC & SD Card Wear Protection:** จำกัดขนาด Log ของระบบ Linux ไม่เกิน 50MB (Volatile Journald) และโยกย้ายไฟล์แคชชั่วคราวไปไว้บน RAM (tmpfs) เพื่อยืดอายุการใช้งานฮาร์ดแวร์
 
 ---
 
