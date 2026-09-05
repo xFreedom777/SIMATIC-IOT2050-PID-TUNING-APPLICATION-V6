@@ -1,4 +1,4 @@
-﻿# SIMATIC IOT2050 PID Tuning Application — V6
+﻿# SIMATIC IOT2050 PID Tuning Application — V6.5 (Final Production)
 
 > **[ภาษาไทย 🇹🇭 อยู่ด้านล่าง / Thai version below ⬇️]**
 
@@ -23,7 +23,7 @@
 ![Siemens](https://img.shields.io/badge/Siemens-S7--1200-009999?logo=siemens)
 ![Platform](https://img.shields.io/badge/Platform-IOT2050%20Debian-blue)
 ![Protection](https://img.shields.io/badge/Power--Cut%20Immunity-OverlayFS%20Read--Only-gold)
-![Stability](https://img.shields.io/badge/Stability-24%2F7%20Industrial%20V6-brightgreen)
+![Stability](https://img.shields.io/badge/Stability-24%2F7%20Industrial%20V6.5%20Final-brightgreen)
 ![Author](https://img.shields.io/badge/Author-xFreedom777-purple)
 
 </div>
@@ -34,6 +34,7 @@
 
 - [Overview](#-overview)
 - [System Architecture](#-system-architecture)
+- [What's New in Version 6.5 (Latest)](#-whats-new-in-version-65-latest)
 - [What's New in Version 6](#-whats-new-in-version-6)
 - [What's New in Version 5](#-whats-new-in-version-5)
 - [24/7 Industrial Stability & Power-Cut Shield](#-247-industrial-stability--power-cut-shield)
@@ -107,6 +108,18 @@ Version 6 introduces a **Power-Cut Proof Architecture** with **OverlayFS Read-On
 │  └── 🌐 Click_To_View_Chart.html (🌟 Double-click in browser: Multi-Loop & Multi-Date Interactive UI) │
 └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🌟 What's New in Version 6.5 (Latest)
+
+| Feature | Description |
+|---|---|
+| 🕒 **S7-1200 DB120 Hardware RTC Auto-Sync** | Automatically reads `DTL` datetime from **DB120 Offset 0.0** inside the main polling sequence every 5s. Calibrates Linux kernel clock via `date -s` without requiring RTC coin battery (CR2032) or internet connection. Includes UI manual sync button (`⚡ Sync from S7 DB120`). |
+| 🛡️ **U-Boot Initramfs Boot Script Integration** | Custom compiled `/boot/boot.scr` supporting dual-boot fallback for `initrd.img` loading, activating **OverlayFS (`overlayroot`)** reliably during boot. |
+| 🧠 **RAM Memory Guard (7-Day RAM Retention)** | Limits local temporary `tmpfs` CSV logs to **7 days** to eliminate Out-Of-Memory (OOM) risks on 1GB RAM IOT2050 Basic models. Long-term logs remain permanently archived on the USB Flash Drive. |
+| 🔄 **Backend S7 Auto-Reconnect Daemon** | Standalone background connection watcher in `server.js` retrying S7comm connection every 10s upon PLC breaker resets or network link cuts without requiring UI interaction. |
+| 📦 **Offline Package Installer (`overlayroot.deb`)** | Includes local Debian 10 Buster `overlayroot.deb` package deployed automatically via `Deploy-Patch.ps1` for fully offline plant commissioning. |
 
 ---
 
