@@ -48,7 +48,7 @@
 
 ## 🌐 Overview
 
-**SIMATIC IOT2050 PID Tuning Application V6** is a mission-critical, full-stack industrial SCADA & PID tuning kiosk web application designed to run natively on the **Siemens SIMATIC IOT2050 Edge Gateway**.
+**SIMATIC IOT2050 PID Tuning Application V6.5** is a mission-critical, full-stack industrial SCADA & PID tuning kiosk web application designed to run natively on the **Siemens SIMATIC IOT2050 Edge Gateway**.
 
 Engineered specifically for the **Gate Valve Control & Monitoring System at Mitr Phol Pin Mill Plant**, it communicates directly with **Siemens S7-1200 PLCs (PIDCompact V2 block)** over the factory OT network via the S7 communication protocol.
 
@@ -233,13 +233,25 @@ powershell -ExecutionPolicy Bypass -File .\Deploy-Patch.ps1
 
 ## 🌐 ภาพรวมระบบ (Overview)
 
-**SIMATIC IOT2050 PID Tuning Application V6** เป็น Web Application อุตสาหกรรมแบบ Full-Stack ที่ทำงานบน **Siemens SIMATIC IOT2050 Edge Gateway** โดยตรง พัฒนาขึ้นสำหรับ **โครงการควบคุมและตรวจสอบ Gate Valve ของโรงงาน Mitr Phol Pin Mill Plant** โดยเฉพาะ เชื่อมต่อตรงกับ **Siemens S7-1200 PLC** ผ่านพอร์ตแลนโรงงานแบบ Real-time ตลอด 24 ชม. 365 วัน
+**SIMATIC IOT2050 PID Tuning Application V6.5** เป็น Web Application อุตสาหกรรมแบบ Full-Stack ที่ทำงานบน **Siemens SIMATIC IOT2050 Edge Gateway** โดยตรง พัฒนาขึ้นสำหรับ **โครงการควบคุมและตรวจสอบ Gate Valve ของโรงงาน Mitr Phol Pin Mill Plant** โดยเฉพาะ เชื่อมต่อตรงกับ **Siemens S7-1200 PLC** ผ่านพอร์ตแลนโรงงานแบบ Real-time ตลอด 24 ชม. 365 วัน
 
-ในเวอร์ชัน 6 นี้ ได้รับการอัปเกรดระบบ **Power-Cut Proof Architecture (เกราะป้องกันการตัดไฟ)** ด้วยเทคโนโลยี **OverlayFS Read-Only Root** เพื่อป้องกันปัญหา OS พังหรือ SD Card เสียหายจากการสับเบรกเกอร์หรือดึงปลั๊กผิดวิธี 100%
+ในเวอร์ชัน 6.5 นี้ ได้รับการอัปเกรดระบบ **Power-Cut Proof Architecture (เกราะป้องกันการตัดไฟสมบูรณ์แบบ)** ด้วย **OverlayFS Read-Only Root + U-Boot Initramfs** และระบบ **Hardware RTC Auto-Sync จาก S7-1200 DB120** ทำให้ระบบเสถียร 100% ไม่ต้องใช้ถ่านแบตเตอรี่ และป้องกัน OS พังจากการสับเบรกเกอร์หรือไฟกระชาก 100%
 
 ---
 
-## 🌟 ฟีเจอร์เด่นในเวอร์ชัน 6 (V6 New Features)
+## 🌟 สิ่งที่อัปเดตใหม่ใน Version 6.5 (ล่าสุด)
+
+| ฟีเจอร์ / ความสามารถ | รายละเอียดการทำงาน |
+|---|---|
+| 🕒 **S7-1200 DB120 Hardware RTC Auto-Sync** | ซิงค์เวลาจาก **S7-1200 DB120 Offset 0.0 (ชนิดข้อมูล DTL)** ทุกๆ 5 วินาทีในลูปอ่านข้อมูลหลัก เพื่อตั้งเวลาเครื่อง Linux อัตโนมัติ (`date -s`) โดยไม่ต้องใส่ถ่านกระดุม RTC (CR2032) และไม่ต้องเชื่อมต่ออินเทอร์เน็ต พร้อมปุ่มกดสั่ง Sync ด้วยตนเองบนหน้าจอ (`⚡ Sync from S7 DB120`) |
+| 🛡️ **U-Boot Initramfs Boot Script (`boot.scr`)** | คอมไพล์สคริปต์บูต `/boot/boot.scr` ด้วย `mkimage` เพื่อให้ U-Boot ทำการโหลด `initrd.img` และเปิดใช้งานเกราะ **OverlayFS (`overlayroot`)** ได้อย่างสมบูรณ์แบบบน IOT2050 พร้อมระบบ Dual-Boot Fallback ปลอดภัย 100% |
+| 🧠 **RAM Memory Guard (จำกัด Log ใน RAM 7 วัน)** | ป้องกันปัญหา RAM 1GB เต็ม (Out-Of-Memory) โดยจำกัดไฟล์ CSV Log ชั่วคราวใน RAM (`tmpfs`) ไว้ที่ 7 วันล่าสุด ส่วนข้อมูล Log ระยะยาวทั้งหมดจะถูกสำรองและเก็บรักษาถาวรบน Flash Drive (FAT32) |
+| 🔄 **Backend S7 Auto-Reconnect Daemon** | ระบบเฝ้าระวังการเชื่อมต่อเบื้องหลังใน `server.js` พยายามเชื่อมต่อกับ S7-1200 PLC อัตโนมัติทุกๆ 10 วินาที เมื่อ PLC ถูกสับเบรกเกอร์หรือสาย LAN หลุด โดยไม่ต้องกดรีเฟรชหน้าเว็บ |
+| 📦 **ตัวติดตั้งแบบออฟไลน์ (`overlayroot.deb`)** | มีแพ็กเกจ `.deb` สำหรับติดตั้งบน Debian Buster แบบออฟไลน์ 100% พร้อมสคริปต์ `Deploy-Patch.ps1` ที่รองรับการเขียนข้อมูลทะลุเกราะ OverlayFS (`/media/root-ro`) เข้าสู่ SD Card จริงโดยตรง |
+
+---
+
+## 🌟 ฟีเจอร์เด่นในเวอร์ชัน 6 (V6 Features)
 
 ### 1. 🛡️ ระบบป้องกันไฟดับถาวร (OverlayFS Read-Only Root)
 * ล็อกพาร์ติชันระบบ OS (`/`) บน MicroSD Card ให้เป็น **Read-Only (อ่านได้อย่างเดียว ห้ามเขียน)**
