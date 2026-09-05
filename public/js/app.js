@@ -1579,6 +1579,19 @@ function openTimeModal() {
   openModal('timeModal');
 }
 
+async function syncTimeFromPLCNow() {
+  try {
+    toast('Syncing time from PLC DB120...', 'info');
+    const data = await api('POST', '/api/system/sync-plc-time');
+    if (data.success) {
+      toast(`✅ Time Synced from PLC: ${data.syncedTime}`, 'success', 5000);
+      closeModal('timeModal');
+    }
+  } catch (err) {
+    toast(err.message, 'error', 5000);
+  }
+}
+
 async function saveSystemTime() {
   const val = document.getElementById('timeInput').value.trim();
   try {

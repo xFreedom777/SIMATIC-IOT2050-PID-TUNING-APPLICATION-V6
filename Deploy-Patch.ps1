@@ -46,6 +46,7 @@ scp .\src\s7client.js ${iot_user}@${iot_ip}:${iot_path}/src/
 Write-Host "[7/10] Deploying 24/7 Stability & Power-Cut Setup Script..." -ForegroundColor Yellow
 scp .\usb-mount-helper.sh ${iot_user}@${iot_ip}:${iot_path}/
 scp .\usb-unmount-helper.sh ${iot_user}@${iot_ip}:${iot_path}/
+scp .\overlayroot.deb ${iot_user}@${iot_ip}:${iot_path}/
 scp .\setup-247-stability.sh ${iot_user}@${iot_ip}:${iot_path}/
 
 Write-Host "[8/10] Deploying Self-Healing Watchdog..." -ForegroundColor Yellow
@@ -67,6 +68,9 @@ ssh ${iot_user}@${iot_ip} "chmod +x ${iot_path}/setup-247-stability.sh ${iot_pat
 
 Write-Host "`n[OK] 24/7 Deployment Complete! Restarting Node server..." -ForegroundColor Green
 Write-Host "     >> System Created & Maintained by Dream Piyapong <<" -ForegroundColor Yellow
+# Make sure changes persist to physical MicroSD if Overlayroot is active
+ssh ${iot_user}@${iot_ip} "if [ -d /media/root-ro ]; then mount -o remount,rw /media/root-ro 2>/dev/null || true; mkdir -p /media/root-ro${iot_path}/src /media/root-ro/etc/systemd/system; cp -rf ${iot_path}/* /media/root-ro${iot_path}/ 2>/dev/null || true; cp -rf ${iot_path}/src/* /media/root-ro${iot_path}/src/ 2>/dev/null || true; cp -f /etc/systemd/system/pid-app.service /media/root-ro/etc/systemd/system/ 2>/dev/null || true; sync; mount -o remount,ro /media/root-ro 2>/dev/null || true; echo '[OK] Permanent SD Card Storage Synced!'; fi"
+
 ssh ${iot_user}@${iot_ip} "systemctl restart pid-app kiosk-watchdog"
 
 Write-Host ""

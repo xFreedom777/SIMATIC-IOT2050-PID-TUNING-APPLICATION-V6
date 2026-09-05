@@ -784,6 +784,7 @@
         <input class="input" id="timeInput" type="text" placeholder="29/07/2026 18:30:00">
       </div>
       <div class="modal-footer">
+        <button class="btn btn-warning" onclick="syncTimeFromPLCNow()" style="margin-right:auto; font-weight:600">⚡ Sync from S7 DB120</button>
         <button class="btn btn-ghost" onclick="closeModal('timeModal')">Cancel</button>
         <button class="btn btn-cyan" onclick="saveSystemTime()">Save to IOT2050</button>
       </div>

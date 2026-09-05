@@ -72,6 +72,7 @@ class S7Client {
       case 'DINT':  return `DB${db},DINT${byte}`;
       case 'WORD':  return `DB${db},WORD${byte}`;
       case 'DWORD': return `DB${db},DWORD${byte}`;
+      case 'BYTE':  return `DB${db},BYTE${byte}`;
       case 'BOOL':  return `DB${db},X${byte}.${myBit}`;
       default:      return `DB${db},REAL${byte}`;
     }
@@ -88,8 +89,8 @@ class S7Client {
       this.conn.initiateConnection({
         port:        102,
         host:        opts.host,
-        rack:        opts.rack ?? 0,
-        slot:        opts.slot ?? 0,
+        rack:        (opts.rack != null ? opts.rack : 0),
+        slot:        (opts.slot != null ? opts.slot : 0),
         localTSAP:   0x0100,
         remoteTSAP:  0x0300,
         timeout:     8000,
@@ -311,6 +312,44 @@ class S7Client {
     await new Promise(r => setTimeout(r, 150));
     await this._write([this._tag(db, o.errorAck, 'BOOL', 0)], [false]);
   }
+
+  // Read DTL DateTime from S7 PLC DB (Default: DB120 at offset 0.0)
+  // Read DTL DateTime from S7 PLC DB (Default: DB120 at offset 0.0)
+  async readPlcDateTime(dbNumber = 120, startOffset = 0) {
+    try {
+      const d = await this._read({
+        year:   this._tag(dbNumber, startOffset + 0, 'INT'),
+        month:  this._tag(dbNumber, startOffset + 2, 'BYTE'),
+        day:    this._tag(dbNumber, startOffset + 3, 'BYTE'),
+        hour:   this._tag(dbNumber, startOffset + 5, 'BYTE'),
+        minute: this._tag(dbNumber, startOffset + 6, 'BYTE'),
+        second: this._tag(dbNumber, startOffset + 7, 'BYTE'),
+      });
+
+      if (!d) return null;
+      const y = parseInt(d.year, 10);
+      const m = parseInt(d.month, 10);
+      const day = parseInt(d.day, 10);
+      const h = parseInt(d.hour, 10);
+      const min = parseInt(d.minute, 10);
+      const s = parseInt(d.second, 10);
+
+      if (isNaN(y) || y < 2024 || y > 2099) return null;
+      if (isNaN(m) || m < 1 || m > 12) return null;
+      if (isNaN(day) || day < 1 || day > 31) return null;
+      if (isNaN(h) || h < 0 || h > 23) return null;
+      if (isNaN(min) || min < 0 || min > 59) return null;
+      if (isNaN(s) || s < 0 || s > 59) return null;
+
+      const pad = (n) => String(n).padStart(2, '0');
+      const dateStr = `${y}-${pad(m)}-${pad(day)} ${pad(h)}:${pad(min)}:${pad(s)}`;
+      return dateStr;
+    } catch (err) {
+      console.error('[s7client] readPlcDateTime error:', err.message);
+      return null;
+    }
+  }
+
 }
 
 module.exports = { S7Client, DEFAULT_OFFSETS };

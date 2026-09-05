@@ -99,8 +99,8 @@ class Simulator {
 
   addLoop(blockId, p = {}) {
     const pid = new PIDController(p.kp || 1, p.ti || 10, p.td || 0, 0.5);
-    pid.outputUpperLimit = p.outputUpperLimit ?? 100;
-    pid.outputLowerLimit = p.outputLowerLimit ?? 0;
+    pid.outputUpperLimit = (p.outputUpperLimit != null ? p.outputUpperLimit : 100);
+    pid.outputLowerLimit = (p.outputLowerLimit != null ? p.outputLowerLimit : 0);
 
     const proc = new FOPDTProcess(
       this.processParams.processGain,
@@ -110,7 +110,7 @@ class Simulator {
 
     this.loops[blockId] = {
       pid, proc,
-      setpoint: p.setpoint ?? 50,
+      setpoint: (p.setpoint != null ? p.setpoint : 50),
       mode: 3,          // 3=Auto, 4=Manual
       manualOutput: 50,
       pv: 0,

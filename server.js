@@ -103,7 +103,6 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
 // ═══════════════════════════════════════════════
 // App State
 // ═══════════════════════════════════════════════
@@ -162,8 +161,8 @@ loadBlocks();
 loadConfig();
 let history = {};               // blockId → [{sp,pv,output,mode,timestamp}]
 let pollerTimer = null;
-const POLL_MS      = 250;       // Optimized 250ms (4Hz) Balanced Polling (Reduces V8 GC Overhead & CPU load by 60%)       // Fast 100ms (10Hz) PLC Polling Loop
-const MAX_HISTORY  = 10000;
+const POLL_MS      = 250;       // Optimized 250ms (4Hz) Balanced Polling
+const MAX_HISTORY  = 2000;
 
 const LOG_INTERVAL_MS = 5000;
 let lastLogTime = {};
@@ -182,6 +181,58 @@ function broadcast(data) {
     }
   });
 }
+
+// ═══════════════════════════════════════════════
+// S7-1200 Hardware RTC Time Sync (DB120 offset 0.0 DTL)
+// ═══════════════════════════════════════════════
+let lastSyncedPlcTime = '';
+let lastTimeSyncCheck = 0;
+let syncRetryCount = 0;
+
+async function syncTimeFromPLC() {
+  if (!s7 || appMode !== 'plc') return;
+  try {
+    const plcTimeStr = await s7.readPlcDateTime(120, 0);
+    if (!plcTimeStr) {
+      if (syncRetryCount < 3) {
+        console.warn('[TimeSync] ⚠️ Waiting for valid DTL time from S7 DB120 offset 0.0...');
+        syncRetryCount++;
+      }
+      return;
+    }
+
+    // Safety Guard 1: If time hasn't changed (PLC in STOP or block not executed)
+    if (plcTimeStr === lastSyncedPlcTime) return;
+
+    const plcTimestamp = new Date(plcTimeStr).getTime();
+    const currentLinuxTimestamp = Date.now();
+
+    // Safety Guard 2: Skip if Linux time already matches within 3 seconds
+    if (Math.abs(currentLinuxTimestamp - plcTimestamp) < 3000) {
+      lastSyncedPlcTime = plcTimeStr;
+      return;
+    }
+
+    lastSyncedPlcTime = plcTimeStr;
+    console.log(`[TimeSync] 🕒 Syncing Linux system time from S7-1200 (DB120): ${plcTimeStr}`);
+
+    // Ensure NTP is disabled so Linux kernel allows setting date manually
+    const cmd = `timedatectl set-ntp false 2>/dev/null || true; timedatectl set-timezone Asia/Bangkok 2>/dev/null || true; date -s "${plcTimeStr}" && hwclock -w >/dev/null 2>&1 || true`;
+    require('child_process').exec(cmd, (err, stdout, stderr) => {
+      if (!err) {
+        console.log(`[TimeSync] ✅ Linux System Time Synced Successfully to: ${plcTimeStr}`);
+        broadcast({ type: 'time_synced', time: plcTimeStr });
+      } else {
+        console.error(`[TimeSync] ❌ Time sync execution error:`, err.message || stderr);
+      }
+    });
+  } catch (err) {
+    console.error('[TimeSync] Error:', err.message);
+  }
+}
+
+// Periodic S7 Time Sync every 5 minutes (and aggressive retry on startup)
+setInterval(syncTimeFromPLC, 5 * 60 * 1000);
 
 // ─── Default block offsets ────────────────────
 function defaultOffsets() {
@@ -282,12 +333,12 @@ app.post('/api/blocks', (req, res) => {
   // If simulation running, add the loop
   if (appMode === 'simulation' && sim) {
     sim.addLoop(id, {
-      kp:               blocks[id].params.gain            ?? 1,
-      ti:               blocks[id].params.ti              ?? 10,
-      td:               blocks[id].params.td              ?? 0,
-      setpoint:         blocks[id].params.setpoint        ?? 50,
-      outputUpperLimit: blocks[id].params.outputUpperLimit ?? 100,
-      outputLowerLimit: blocks[id].params.outputLowerLimit ?? 0,
+      kp:               (blocks[id].params.gain != null ? blocks[id].params.gain : 1),
+      ti:               (blocks[id].params.ti != null ? blocks[id].params.ti : 10),
+      td:               (blocks[id].params.td != null ? blocks[id].params.td : 0),
+      setpoint:         (blocks[id].params.setpoint != null ? blocks[id].params.setpoint : 50),
+      outputUpperLimit: (blocks[id].params.outputUpperLimit != null ? blocks[id].params.outputUpperLimit : 100),
+      outputLowerLimit: (blocks[id].params.outputLowerLimit != null ? blocks[id].params.outputLowerLimit : 0),
     });
   }
 
@@ -498,12 +549,12 @@ app.post('/api/simulation/start', (req, res) => {
   Object.keys(blocks).forEach(id => {
     const b = blocks[id];
     sim.addLoop(id, {
-      kp:               b.params.gain             ?? 1,
-      ti:               b.params.ti               ?? 10,
-      td:               b.params.td               ?? 0,
-      setpoint:         b.params.setpoint          ?? 50,
-      outputUpperLimit: b.params.outputUpperLimit  ?? 100,
-      outputLowerLimit: b.params.outputLowerLimit  ?? 0,
+      kp:               (b.params.gain != null ? b.params.gain : 1),
+      ti:               (b.params.ti != null ? b.params.ti : 10),
+      td:               (b.params.td != null ? b.params.td : 0),
+      setpoint:         (b.params.setpoint != null ? b.params.setpoint : 50),
+      outputUpperLimit: (b.params.outputUpperLimit != null ? b.params.outputUpperLimit : 100),
+      outputLowerLimit: (b.params.outputLowerLimit != null ? b.params.outputLowerLimit : 0),
     });
   });
 
@@ -582,6 +633,30 @@ function startPoller() {
           }
 
           if (!data) continue;
+
+          // ── S7-1200 DB120 Hardware Clock Sync (Every 5s inside poller sequence) ──
+          if (appMode === 'plc' && s7 && (Date.now() - lastTimeSyncCheck > 5000)) {
+            lastTimeSyncCheck = Date.now();
+            try {
+              const plcTimeStr = await s7.readPlcDateTime(120, 0);
+              if (plcTimeStr && plcTimeStr !== lastSyncedPlcTime) {
+                const plcTimestamp = new Date(plcTimeStr).getTime();
+                const currentLinuxTimestamp = Date.now();
+                if (Math.abs(currentLinuxTimestamp - plcTimestamp) > 3000) {
+                  lastSyncedPlcTime = plcTimeStr;
+                  console.log(`[TimeSync] 🕒 Auto-Syncing Linux system time from S7 DB120: ${plcTimeStr}`);
+                  const cmd = `timedatectl set-ntp false 2>/dev/null || true; timedatectl set-timezone Asia/Bangkok 2>/dev/null || true; date -s "${plcTimeStr}" && hwclock -w >/dev/null 2>&1 || true`;
+                  require('child_process').exec(cmd, (err) => {
+                    if (!err) {
+                      console.log(`[TimeSync] ✅ Linux System Time Synced: ${plcTimeStr}`);
+                      broadcast({ type: 'time_synced', time: plcTimeStr });
+                    }
+                  });
+                }
+              }
+            } catch (te) {}
+          }
+
 
           const point = { ...data, timestamp: Date.now() };
           blocks[id].lastData = point;
@@ -724,6 +799,24 @@ app.post('/api/shutdown', (req, res) => {
 // ═══════════════════════════════════════════════
 // Set System Time Endpoint
 // ═══════════════════════════════════════════════
+
+app.post('/api/system/sync-plc-time', async (req, res) => {
+  if (!s7 || appMode !== 'plc') return res.status(400).json({ error: 'Not connected to PLC' });
+  try {
+    const plcTimeStr = await s7.readPlcDateTime(120, 0);
+    if (!plcTimeStr) return res.status(400).json({ error: 'Could not read valid DTL from DB120 offset 0.0' });
+    
+    const cmd = `timedatectl set-timezone Asia/Bangkok && date -s "${plcTimeStr}" && hwclock -w >/dev/null 2>&1 || true`;
+    require('child_process').exec(cmd, (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      console.log(`[TimeSync] 🕒 Manual Sync triggered: ${plcTimeStr}`);
+      res.json({ success: true, syncedTime: plcTimeStr });
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/system/time', (req, res) => {
   const { datetime } = req.body;
   if (!datetime) return res.status(400).json({ error: 'Datetime required' });
@@ -959,7 +1052,9 @@ function autoClearLogs() {
   const now = Date.now();
   Object.values(blocks).forEach(b => {
     const months = b.logAutoClearMonths || 1;
-    const maxAgeMs = months * 30 * 24 * 60 * 60 * 1000;
+    // Cap internal RAM storage to 7 days max (long-term data is backed up to USB)
+    const maxDays = Math.min(months * 30, 7);
+    const maxAgeMs = maxDays * 24 * 60 * 60 * 1000;
     
     let targetDir = LOGS_DIR;
     if (b.logPath && b.logPath.trim() !== '') {

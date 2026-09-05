@@ -134,43 +134,28 @@ for uenv in /boot/uEnv.txt /boot/efi/uEnv.txt /uEnv.txt; do
   fi
 done
 
-# 7. Power-Cut Proof: Install & Configure Overlayroot (Read-Only Root Filesystem)
+# 7. Power-Cut Proof: Install & Configure Overlayroot (Read-Only Root Filesystem - Offline Mode)
 echo "--> [7/10] Setting up Power-Cut Protection (OverlayFS / Read-Only Root)..."
 if ! dpkg -l | grep -q "overlayroot"; then
-  echo "    Installing overlayroot package..."
-  apt-get update -y >/dev/null 2>&1 || true
-  apt-get install -y overlayroot >/dev/null 2>&1 || true
+  echo "    Installing offline overlayroot.deb package..."
+  if [ -f "${APP_DIR}/overlayroot.deb" ]; then
+    dpkg -i "${APP_DIR}/overlayroot.deb" 2>/dev/null || true
+  fi
 fi
 
 # Enable OverlayFS on tmpfs (RAM)
 mkdir -p /etc
+cat << 'EOF' > /etc/overlayroot.conf
+overlayroot="tmpfs:swap=0,recurse=0"
+EOF
+
 cat << 'EOF' > /etc/overlayroot.local.conf
 overlayroot="tmpfs:swap=0,recurse=0"
 EOF
 
-# Install Management Shortcuts
-cat << 'EOF' > /usr/local/bin/enable-readonly
-#!/bin/bash
-echo 'overlayroot="tmpfs:swap=0,recurse=0"' > /etc/overlayroot.local.conf
-echo "✅ Read-Only Protection ENABLED. Reboot to activate."
-EOF
-chmod +x /usr/local/bin/enable-readonly
-
-cat << 'EOF' > /usr/local/bin/disable-readonly
-#!/bin/bash
-echo 'overlayroot="disabled"' > /etc/overlayroot.local.conf
-echo "⚠️  Read-Only Protection DISABLED (Maintenance Mode). Reboot to apply."
-EOF
-chmod +x /usr/local/bin/disable-readonly
-
-cat << 'EOF' > /usr/local/bin/edit-system
-#!/bin/bash
-echo "Entering Overlayroot Chroot (Direct Write Mode)... Type 'exit' when done."
-overlayroot-chroot
-EOF
-chmod +x /usr/local/bin/edit-system
-
-echo "    [OK] OverlayFS configured (SD Card is now 100% Power-Cut Proof!)"
+# Update initramfs image to include overlayroot boot hooks
+echo "    Updating initramfs kernel image (this may take 10-15s)..."
+update-initramfs -u 2>/dev/null || true
 
 # 8. Install Watchdog script
 echo "--> [8/10] Installing Self-Healing Watchdog script..."
@@ -225,6 +210,36 @@ EOF
 
 # Midnight USB Backup
 cat << 'CRONEOF' > /usr/local/bin/pid-usb-backup.sh
+#!/bin/bash
+# Midnight Auto-Backup: Copy all PID Log CSV files to USB Flash Drive
+LOG=/var/log/pid-usb-backup.log
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] 🕛 Auto-Backup Started" >> "$LOG"
+
+/bin/bash /opt/pid-tuning-app/usb-mount-helper.sh >> "$LOG" 2>&1 || true
+
+if ! mount | grep -q /media/usb; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ⚠️ USB not available. Skipping backup." >> "$LOG"
+  exit 0
+fi
+
+TODAY=$(date '+%Y-%m-%d')
+DEST="/media/usb/PID_Logs_Backup/${TODAY}"
+mkdir -p "$DEST"
+
+SRC="/opt/pid-tuning-app/logs"
+if [ -d "$SRC" ]; then
+  COUNT=$(find "$SRC" -name "*.csv" | wc -l)
+  cp -u "$SRC"/*.csv "$DEST"/ 2>/dev/null || true
+  node /opt/pid-tuning-app/generate-usb-viewer.js "$DEST" 2>/dev/null || true
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ Copied ${COUNT} files ➔ $DEST" >> "$LOG"
+fi
+
+sync
+/bin/bash /opt/pid-tuning-app/usb-unmount-helper.sh >> "$LOG" 2>&1 || umount /media/usb 2>/dev/null || true
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] 💾 Auto-Backup Done. USB Ejected." >> "$LOG"
+
+tail -n 500 "$LOG" > "${LOG}.tmp" && mv "${LOG}.tmp" "$LOG"
+CRONEOF' > /usr/local/bin/pid-usb-backup.sh
 #!/bin/bash
 # Midnight Auto-Backup: Copy all PID Log CSV files to USB Flash Drive
 LOG=/var/log/pid-usb-backup.log
